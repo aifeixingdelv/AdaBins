@@ -66,3 +66,12 @@ infer_helper.predict_dir("/path/to/input/dir/containing_only_images/", "path/to/
 * Add instructions for Evaluation and Training.
 * Add UI demo
 * Remove unnecessary dependencies
+## Environment config：
+* cuda：11.8
+* cudnn: 8.9.0
+* torch: 2.0.1+cu118
+* torchvision: 0.15.2+cu118
+* find cuda_version：nvcc -V;
+* find cudnn_version: cat /usr/include/cudnn_version.h |grep CUDNN_MAJOR -A 2
+* find torch_version and torchvision_version: python; import torch; import torchvision; print(torch.__version__); print(torchvision.__version__)
+
