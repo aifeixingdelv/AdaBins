@@ -28,9 +28,11 @@ def preprocessing_transforms(mode):
 class DepthDataLoader(object):
     def __init__(self, args, mode):
         if mode == 'train':
-            self.training_samples = DataLoadPreprocess(args, mode, transform=preprocessing_transforms(mode))
+            self.training_samples = DataLoadPreprocess(
+                args, mode, transform=preprocessing_transforms(mode))
             if args.distributed:
-                self.train_sampler = torch.utils.data.distributed.DistributedSampler(self.training_samples)
+                self.train_sampler = torch.utils.data.distributed.DistributedSampler(
+                    self.training_samples)
             else:
                 self.train_sampler = None
 
@@ -41,7 +43,8 @@ class DepthDataLoader(object):
                                    sampler=self.train_sampler)
 
         elif mode == 'online_eval':
-            self.testing_samples = DataLoadPreprocess(args, mode, transform=preprocessing_transforms(mode))
+            self.testing_samples = DataLoadPreprocess(
+                args, mode, transform=preprocessing_transforms(mode))
             if args.distributed:  # redundant. here only for readability and to be more explicit
                 # Give whole test set to all processes (and perform/report evaluation only on one) regardless
                 self.eval_sampler = None
@@ -54,11 +57,14 @@ class DepthDataLoader(object):
                                    sampler=self.eval_sampler)
 
         elif mode == 'test':
-            self.testing_samples = DataLoadPreprocess(args, mode, transform=preprocessing_transforms(mode))
-            self.data = DataLoader(self.testing_samples, 1, shuffle=False, num_workers=1)
+            self.testing_samples = DataLoadPreprocess(
+                args, mode, transform=preprocessing_transforms(mode))
+            self.data = DataLoader(self.testing_samples,
+                                   1, shuffle=False, num_workers=1)
 
         else:
-            print('mode should be one of \'train, test, online_eval\'. Got {}'.format(mode))
+            print(
+                'mode should be one of \'train, test, online_eval\'. Got {}'.format(mode))
 
 
 def remove_leading_slash(s):
@@ -88,11 +94,15 @@ class DataLoadPreprocess(Dataset):
 
         if self.mode == 'train':
             if self.args.dataset == 'kitti' and self.args.use_right is True and random.random() > 0.5:
-                image_path = os.path.join(self.args.data_path, remove_leading_slash(sample_path.split()[3]))
-                depth_path = os.path.join(self.args.gt_path, remove_leading_slash(sample_path.split()[4]))
+                image_path = os.path.join(
+                    self.args.data_path, remove_leading_slash(sample_path.split()[3]))
+                depth_path = os.path.join(
+                    self.args.gt_path, remove_leading_slash(sample_path.split()[4]))
             else:
-                image_path = os.path.join(self.args.data_path, remove_leading_slash(sample_path.split()[0]))
-                depth_path = os.path.join(self.args.gt_path, remove_leading_slash(sample_path.split()[1]))
+                image_path = os.path.join(
+                    self.args.data_path, remove_leading_slash(sample_path.split()[0]))
+                depth_path = os.path.join(
+                    self.args.gt_path, remove_leading_slash(sample_path.split()[1]))
 
             image = Image.open(image_path)
             depth_gt = Image.open(depth_path)
@@ -102,8 +112,10 @@ class DataLoadPreprocess(Dataset):
                 width = image.width
                 top_margin = int(height - 352)
                 left_margin = int((width - 1216) / 2)
-                depth_gt = depth_gt.crop((left_margin, top_margin, left_margin + 1216, top_margin + 352))
-                image = image.crop((left_margin, top_margin, left_margin + 1216, top_margin + 352))
+                depth_gt = depth_gt.crop(
+                    (left_margin, top_margin, left_margin + 1216, top_margin + 352))
+                image = image.crop(
+                    (left_margin, top_margin, left_margin + 1216, top_margin + 352))
 
             # To avoid blank boundaries due to pixel registration
             if self.args.dataset == 'nyu':
@@ -113,7 +125,8 @@ class DataLoadPreprocess(Dataset):
             if self.args.do_random_rotate is True:
                 random_angle = (random.random() - 0.5) * 2 * self.args.degree
                 image = self.rotate_image(image, random_angle)
-                depth_gt = self.rotate_image(depth_gt, random_angle, flag=Image.NEAREST)
+                depth_gt = self.rotate_image(
+                    depth_gt, random_angle, flag=Image.NEAREST)
 
             image = np.asarray(image, dtype=np.float32) / 255.0
             depth_gt = np.asarray(depth_gt, dtype=np.float32)
@@ -124,7 +137,8 @@ class DataLoadPreprocess(Dataset):
             else:
                 depth_gt = depth_gt / 256.0
 
-            image, depth_gt = self.random_crop(image, depth_gt, self.args.input_height, self.args.input_width)
+            image, depth_gt = self.random_crop(
+                image, depth_gt, self.args.input_height, self.args.input_width)
             image, depth_gt = self.train_preprocess(image, depth_gt)
             sample = {'image': image, 'depth': depth_gt, 'focal': focal}
 
@@ -134,12 +148,15 @@ class DataLoadPreprocess(Dataset):
             else:
                 data_path = self.args.data_path
 
-            image_path = os.path.join(data_path, remove_leading_slash(sample_path.split()[0]))
-            image = np.asarray(Image.open(image_path), dtype=np.float32) / 255.0
+            image_path = os.path.join(
+                data_path, remove_leading_slash(sample_path.split()[0]))
+            image = np.asarray(Image.open(image_path),
+                               dtype=np.float32) / 255.0
 
             if self.mode == 'online_eval':
                 gt_path = self.args.gt_path_eval
-                depth_path = os.path.join(gt_path, remove_leading_slash(sample_path.split()[1]))
+                depth_path = os.path.join(
+                    gt_path, remove_leading_slash(sample_path.split()[1]))
                 has_valid_depth = False
                 try:
                     depth_gt = Image.open(depth_path)
@@ -161,9 +178,11 @@ class DataLoadPreprocess(Dataset):
                 width = image.shape[1]
                 top_margin = int(height - 352)
                 left_margin = int((width - 1216) / 2)
-                image = image[top_margin:top_margin + 352, left_margin:left_margin + 1216, :]
+                image = image[top_margin:top_margin + 352,
+                              left_margin:left_margin + 1216, :]
                 if self.mode == 'online_eval' and has_valid_depth:
-                    depth_gt = depth_gt[top_margin:top_margin + 352, left_margin:left_margin + 1216, :]
+                    depth_gt = depth_gt[top_margin:top_margin +
+                                        352, left_margin:left_margin + 1216, :]
 
             if self.mode == 'online_eval':
                 sample = {'image': image, 'depth': depth_gt, 'focal': focal, 'has_valid_depth': has_valid_depth,
@@ -233,7 +252,8 @@ class DataLoadPreprocess(Dataset):
 class ToTensor(object):
     def __init__(self, mode):
         self.mode = mode
-        self.normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+        self.normalize = transforms.Normalize(
+            mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 
     def __call__(self, sample):
         image, focal = sample['image'], sample['focal']
@@ -267,7 +287,8 @@ class ToTensor(object):
         elif pic.mode == 'I;16':
             img = torch.from_numpy(np.array(pic, np.int16, copy=False))
         else:
-            img = torch.ByteTensor(torch.ByteStorage.from_buffer(pic.tobytes()))
+            img = torch.ByteTensor(
+                torch.ByteStorage.from_buffer(pic.tobytes()))
         # PIL image mode: 1, L, P, I, F, RGB, YCbCr, RGBA, CMYK
         if pic.mode == 'YCbCr':
             nchannel = 3
